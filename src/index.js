@@ -35,7 +35,7 @@ app.use((err, req, res, _next) => {
 
 const server = app.listen(PORT, () => {
   logger.info(`Servidor TEF rodando em http://localhost:${PORT}`);
-  logger.info(`Modo de integração: ${tefManager.mode}`);
+  logger.info(`TEF inicializado: ${tefManager.initialized}`);
 });
 
 function shutdown() {

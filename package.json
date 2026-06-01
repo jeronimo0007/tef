@@ -15,7 +15,6 @@
   "dependencies": {
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
-    "koffi": "^2.9.2",
     "winston": "^3.17.0"
   },
   "devDependencies": {

@@ -6,14 +6,14 @@ function createTefRoutes(tefManager) {
 
   router.post('/venda', async (req, res) => {
     try {
-      const { tipo, valor, parcelas, tipoParcelamento, cupomFiscal } = req.body;
+      const { tipo, valor, parcelas, tipoParcelamento, descricao, nomeCliente, emailCliente, aguardar } = req.body;
 
       if (!tipo || !valor) {
-        return res.status(400).json({ erro: 'Campos obrigatórios: tipo (credito|debito|voucher), valor' });
+        return res.status(400).json({ erro: 'Campos obrigatórios: tipo (credito|debito), valor' });
       }
 
-      if (!['credito', 'debito', 'voucher'].includes(tipo)) {
-        return res.status(400).json({ erro: 'Tipo inválido. Use: credito, debito ou voucher' });
+      if (!['credito', 'debito', 'credit', 'debit', 'voucher', 'pix'].includes(tipo)) {
+        return res.status(400).json({ erro: 'Tipo inválido. Use: credito, debito, voucher ou pix' });
       }
 
       const numValor = parseFloat(valor);
@@ -21,61 +21,74 @@ function createTefRoutes(tefManager) {
         return res.status(400).json({ erro: 'Valor deve ser numérico e maior que zero' });
       }
 
-      const resultado = await tefManager.venda(tipo, valor, {
-        parcelas,
-        tipoParcelamento,
-        cupomFiscal,
-      });
+      const params = { tipo, valor, parcelas, tipoParcelamento, descricao, nomeCliente, emailCliente };
 
-      const status = resultado.sucesso ? 200 : 422;
-      res.status(status).json(resultado);
-    } catch (err) {
-      logger.error('Erro na venda', { error: err.message });
-      res.status(500).json({ erro: err.message });
-    }
-  });
-
-  router.post('/cancelamento', async (req, res) => {
-    try {
-      const { rede, nsu, data, valor } = req.body;
-
-      if (!rede || !nsu || !data || !valor) {
-        return res.status(400).json({ erro: 'Campos obrigatórios: rede, nsu, data, valor' });
+      let resultado;
+      if (aguardar) {
+        resultado = await tefManager.vendaComEspera(params);
+      } else {
+        resultado = await tefManager.venda(params);
       }
 
-      const resultado = await tefManager.cancelamento(rede, nsu, data, valor);
-      const status = resultado.sucesso ? 200 : 422;
-      res.status(status).json(resultado);
-    } catch (err) {
-      logger.error('Erro no cancelamento', { error: err.message });
-      res.status(500).json({ erro: err.message });
-    }
-  });
-
-  router.post('/reimpressao', async (req, res) => {
-    try {
-      const resultado = await tefManager.reimpressao();
       res.json(resultado);
     } catch (err) {
-      logger.error('Erro na reimpressão', { error: err.message });
-      res.status(500).json({ erro: err.message });
+      logger.error('Erro na venda', { error: err.message, data: err.data });
+      res.status(err.statusCode || 500).json({
+        erro: err.message,
+        detalhes: err.data || null,
+      });
     }
   });
 
-  router.get('/ultima-transacao', async (req, res) => {
+  router.get('/pedido/:id', async (req, res) => {
     try {
-      const resultado = await tefManager.ultimaTransacao();
+      const pedido = await tefManager.consultarPedido(req.params.id);
+      res.json(pedido);
+    } catch (err) {
+      logger.error('Erro ao consultar pedido', { error: err.message });
+      res.status(err.statusCode || 500).json({ erro: err.message });
+    }
+  });
+
+  router.get('/pedido/:id/aguardar', async (req, res) => {
+    try {
+      const resultado = await tefManager.aguardarPagamento(req.params.id);
       res.json(resultado);
     } catch (err) {
-      logger.error('Erro ao obter última transação', { error: err.message });
-      res.status(500).json({ erro: err.message });
+      logger.error('Erro ao aguardar pagamento', { error: err.message });
+      res.status(err.statusCode || 500).json({ erro: err.message });
     }
   });
 
-  router.get('/status', (req, res) => {
+  router.post('/pedido/:id/cancelar', async (req, res) => {
+    try {
+      const resultado = await tefManager.cancelarPedido(req.params.id);
+      res.json(resultado);
+    } catch (err) {
+      logger.error('Erro ao cancelar pedido', { error: err.message });
+      res.status(err.statusCode || 500).json({ erro: err.message });
+    }
+  });
+
+  router.get('/pedidos', async (req, res) => {
+    try {
+      const pedidos = await tefManager.listarPedidos({
+        status: req.query.status,
+        page: req.query.page,
+        size: req.query.size,
+      });
+      res.json(pedidos);
+    } catch (err) {
+      logger.error('Erro ao listar pedidos', { error: err.message });
+      res.status(err.statusCode || 500).json({ erro: err.message });
+    }
+  });
+
+  router.get('/status', (_req, res) => {
     res.json({
       online: true,
-      modo: tefManager.mode,
+      modo: 'Stone Connect API',
+      inicializado: tefManager.initialized,
       timestamp: new Date().toISOString(),
     });
   });
