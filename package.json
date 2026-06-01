@@ -1,0 +1,26 @@
+{
+  "name": "stone-tef-lane3600",
+  "version": "1.0.0",
+  "description": "Aplicação Node.js para comunicação com pinpad Stone Lane 3600 via TEF",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "lint": "eslint src/",
+    "test": "echo \"No tests yet\" && exit 0"
+  },
+  "keywords": ["tef", "stone", "pinpad", "lane3600", "payment"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "winston": "^3.17.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
